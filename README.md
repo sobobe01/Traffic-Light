@@ -13,6 +13,7 @@ This lab has these major objectives:
 
 
 Equipment
+- Keil 4 IDE to run the code
 - Tiva C series TM4C123G Lauchpad
 - Three switches
 - six 470 ohms resistors
