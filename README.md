@@ -50,3 +50,63 @@ If just the west sensor is active (no walk and no south sensor), the lights shou
 If just the walk sensor is active (no west and no south sensor), the lights should adjust so the “walk” light is green within 5 seconds. The “walk” light should stay green for as long as just the walk sensor is active.
 If all three sensors are active, the lights should go into a circular pattern in any order with the west light green, the south light green, and the “walk” light is green. Of course, the road lights must sequence green-yellow-red each time.
 Testing
+
+
+# Red-light simulator and offender log
+
+`simulator/` runs this lab's traffic-light state machine on a computer — no
+Launchpad needed — and adds a red-light camera: cars arrive with (simulated)
+license plates, and anyone who enters the intersection on red is logged.
+
+**Open it:** double-click `simulator/index.html`, or serve the folder
+(`python3 -m http.server --directory simulator`) and open the address it prints.
+
+## What it does
+
+- **The same state machine as the board.** `simulator/fsm.js` is the table from
+  `TableTrafficLight.c` — same ten states, same Port B and Port F outputs, same
+  next-state table, same 0.9 s per state. The page shows the live state, the
+  Port E input bits and the output values exactly as the board would. A test
+  reads the C file and fails if the two ever disagree.
+- **Traffic.** Cars arrive on the South and West roads at the rates you set, and
+  pedestrians press to cross. The car sensors are true while cars are waiting, so
+  the lights respond as they do on the board. You can also add cars and
+  pedestrians by hand.
+- **Red-light runners.** A car that enters on red is caught: a camera flash, its
+  plate, the road, the time, the light and the state. Running a red while
+  pedestrians are crossing is logged as **high** severity. Entering on yellow is
+  legal and is not logged.
+- **Remembering offenders.** Every offence is saved in the browser, so the log
+  survives closing the page. The offenders table groups offences by plate, worst
+  first, and flags a **repeat offender** at 2 or more offences. Some regular
+  commuters run reds habitually; they are the same drivers every session, so
+  their plates keep coming back.
+- **Saving and sending the report.** Export the log as **CSV** (for a
+  spreadsheet) or **JSON** (offender summary plus every offence) to hand on.
+  Nothing leaves your computer unless you send the file yourself.
+- **Controls.** Play/pause, 1×/3×/10× speed, traffic and pedestrian rates, and a
+  driver-recklessness dial.
+
+All plates are generated — none belong to real vehicles.
+
+## Files
+
+| File | What |
+|---|---|
+| `simulator/fsm.js` | The state machine, ported from `TableTrafficLight.c` |
+| `simulator/sim.js` | Cars, plates, pedestrians, red-light detection, offender summary, CSV |
+| `simulator/app.js` | The page: drawing, clock, controls, saving and exporting |
+| `simulator/index.html`, `simulator/styles.css` | The page itself |
+| `simulator/tests/sim.test.js` | Tests |
+
+## Tests
+
+```bash
+node --test "simulator/tests/*.test.js"
+```
+
+They check that the port matches the C table, the lab's safety rules in every
+state (one light per road, never both roads moving, pedestrians only on
+all-red, green always goes through yellow), that red-light runners are caught
+with the right plate, road, time and severity, that careful drivers never are,
+that offenders are counted and repeat offenders flagged, and the CSV export.
