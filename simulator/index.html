@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intersection Monitor</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Intersection Monitor</h1>
+    <p class="sub">South &amp; West one-way streets &middot; running the Lab 10 traffic-light state machine</p>
+  </div>
+  <span class="demo-tag">Simulated plates &middot; not real vehicles</span>
+</header>
+
+<main>
+  <section class="left">
+    <div class="panel scene-panel">
+      <svg id="scene" viewBox="0 0 400 400" role="img" aria-label="The intersection: South road runs top to bottom, West road runs right to left">
+        <rect class="grass" x="0" y="0" width="400" height="400"/>
+        <!-- roads -->
+        <rect class="road" x="170" y="0" width="60" height="400"/>
+        <rect class="road" x="0" y="170" width="400" height="60"/>
+        <rect class="box" x="170" y="170" width="60" height="60"/>
+        <!-- crosswalks -->
+        <g class="zebra">
+          <rect x="170" y="150" width="60" height="16"/>
+          <rect x="234" y="170" width="16" height="60"/>
+        </g>
+        <!-- stop lines -->
+        <line class="stop" x1="170" y1="146" x2="230" y2="146"/>
+        <line class="stop" x1="254" y1="170" x2="254" y2="230"/>
+        <!-- direction labels -->
+        <text class="road-label" x="200" y="18" text-anchor="middle">SOUTH &#8595;</text>
+        <text class="road-label" x="392" y="164" text-anchor="end">&#8592; WEST</text>
+        <!-- signal heads -->
+        <g id="sig-south" class="signal" transform="translate(240 60)">
+          <rect class="housing" x="0" y="0" width="22" height="62" rx="5"/>
+          <circle data-light="red" cx="11" cy="11" r="7"/>
+          <circle data-light="yellow" cx="11" cy="31" r="7"/>
+          <circle data-light="green" cx="11" cy="51" r="7"/>
+        </g>
+        <g id="sig-west" class="signal" transform="translate(300 240)">
+          <rect class="housing" x="0" y="0" width="62" height="22" rx="5"/>
+          <circle data-light="red" cx="11" cy="11" r="7"/>
+          <circle data-light="yellow" cx="31" cy="11" r="7"/>
+          <circle data-light="green" cx="51" cy="11" r="7"/>
+        </g>
+        <g id="sig-walk" class="walk-signal" transform="translate(110 240)">
+          <rect class="housing" x="0" y="0" width="48" height="26" rx="5"/>
+          <text x="24" y="17" text-anchor="middle">WALK</text>
+        </g>
+        <g id="peds"></g>
+        <g id="cars"></g>
+        <g id="flashes"></g>
+      </svg>
+    </div>
+
+    <div class="panel board">
+      <div><span class="k">State</span><b id="b-state">goNS</b></div>
+      <div><span class="k">Port E in</span><b id="b-in">000</b></div>
+      <div><span class="k">Port B out</span><b id="b-out">0x21</b></div>
+      <div><span class="k">Port F out</span><b id="b-walk">0x02</b></div>
+      <div><span class="k">Waiting</span><b id="b-wait">S 0 &middot; W 0 &middot; P 0</b></div>
+    </div>
+
+    <div class="panel controls">
+      <div class="row">
+        <button id="play" class="btn primary">Pause</button>
+        <div class="seg" role="group" aria-label="Speed">
+          <button data-speed="1" aria-pressed="true">1&times;</button>
+          <button data-speed="3" aria-pressed="false">3&times;</button>
+          <button data-speed="10" aria-pressed="false">10&times;</button>
+        </div>
+        <label class="check"><input id="auto" type="checkbox" checked> Auto traffic</label>
+      </div>
+      <div class="sliders">
+        <label>South cars / min <output id="o-south">10</output><input id="r-south" type="range" min="0" max="30" value="10"></label>
+        <label>West cars / min <output id="o-west">10</output><input id="r-west" type="range" min="0" max="30" value="10"></label>
+        <label>Pedestrians / min <output id="o-ped">3</output><input id="r-ped" type="range" min="0" max="12" value="3"></label>
+        <label>Driver recklessness <output id="o-reck">1.0&times;</output><input id="r-reck" type="range" min="0" max="30" value="10"></label>
+      </div>
+      <div class="row">
+        <button class="btn" id="add-south">+ Car on South</button>
+        <button class="btn" id="add-west">+ Car on West</button>
+        <button class="btn" id="add-ped">+ Pedestrian</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="right">
+    <div class="tiles">
+      <div class="tile"><b id="t-passed">0</b><span>Cars through</span></div>
+      <div class="tile alert"><b id="t-red">0</b><span>Ran the red</span></div>
+      <div class="tile"><b id="t-offenders">0</b><span>Plates on file</span></div>
+      <div class="tile alert"><b id="t-repeat">0</b><span>Repeat offenders</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="row-between">
+        <h2>Offenders</h2>
+        <input id="search" type="search" placeholder="Find a plate" aria-label="Find a plate">
+      </div>
+      <p class="muted small" id="memory-note"></p>
+      <div class="table-wrap"><table id="offenders"></table></div>
+    </div>
+
+    <div class="panel">
+      <div class="row-between">
+        <h2>Violation log</h2>
+        <div class="row">
+          <button class="btn small" id="export-csv">Export CSV</button>
+          <button class="btn small" id="export-json">Export JSON</button>
+          <button class="btn small danger" id="clear">Clear</button>
+        </div>
+      </div>
+      <ol id="log" class="log"></ol>
+    </div>
+  </section>
+</main>
+
+<script src="fsm.js"></script>
+<script src="sim.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
